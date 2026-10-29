@@ -24,9 +24,9 @@ export const SettingsDialog = () => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" />}>
+      <DialogTrigger render={<Button variant="outline" aria-label="Настройки" title="Настройки" />}>
         <SettingsIcon data-icon="inline-start" />
-        Настройки
+        <span className="hidden sm:inline">Настройки</span>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-lg">

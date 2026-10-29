@@ -54,7 +54,7 @@ export const AbsencesDialog = ({ rows, absences }: AbsencesDialogProps) => {
           <DialogDescription>Укажите количество пропущенных рабочих дней по каждому месяцу</DialogDescription>
         </DialogHeader>
         <Form schema={schema} defaultValues={defaultValues} onSubmit={handleSubmit}>
-          <div className="grid max-h-96 grid-cols-2 gap-4 overflow-y-auto p-1">
+          <div className="grid max-h-96 grid-cols-1 min-[420px]:grid-cols-2 gap-4 overflow-y-auto p-1">
             {rows.map((row) => (
               <FormInput<AbsencesForm>
                 key={row.date}

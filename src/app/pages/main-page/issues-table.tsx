@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import { Button } from "@/components/ui/button";
 import { Table,TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { estimateSeconds, parseJiraDate, type JiraIssue } from "@/model/jira-csv";
+import { useMq } from "@/libs/hooks";
 import { useJiraUrl } from "@/store";
 import { ExportButtons, type ExportData } from "./export-table";
 
@@ -58,6 +59,37 @@ const monthAnchorId = (key: string) => `month-${key}`;
 
 const scrollToMonth = (key: string) => document.getElementById(monthAnchorId(key))?.scrollIntoView({ behavior: "smooth", block: "start" });
 
+/** Список карточек вместо таблицы на узких экранах */
+const IssuesCards = ({ rows, jiraUrl }: { rows: Row[]; jiraUrl: string }) => (
+  <div className="flex flex-col">
+    {rows.map((row, i) =>
+      row.type === "total" ? (
+        <div key={`total-${i}`} className="flex justify-between gap-2 bg-yellow-100 p-2 font-medium dark:bg-yellow-900/40">
+          <span>Итого за {row.month}</span>
+          <span className="whitespace-nowrap">{formatEstimate(String(row.seconds))}</span>
+        </div>
+      ) : (
+        <div
+          key={`${row.issue.issueKey}-${i}`}
+          id={row.anchor && monthAnchorId(row.anchor)}
+          className="flex scroll-mt-[calc(var(--header-h)+3rem)] flex-col gap-1 border-b p-2"
+        >
+          <div className="flex items-center justify-between gap-2">
+            {COLUMNS[0].render(row.issue, jiraUrl)}
+            <span className="truncate text-xs text-muted-foreground">{row.issue.status}</span>
+          </div>
+          <div className="break-words">{row.issue.summary}</div>
+          <div className="flex flex-wrap justify-between gap-x-3 text-xs text-muted-foreground">
+            <span>Создана: {formatDate(row.issue.created)}</span>
+            <span>Обновлена: {formatDate(row.issue.updated)}</span>
+            <span>Оценка: {formatEstimate(row.issue.originalEstimate)}</span>
+          </div>
+        </div>
+      ),
+    )}
+  </div>
+);
+
 /** Добавляет ряд с суммой оценки по месяцу: перед первой задачей нового месяца (кроме первого ряда) и после последней задачи. */
 const buildRows = (issues: JiraIssue[]): Row[] => {
   const rows: Row[] = [];
@@ -82,6 +114,7 @@ const buildRows = (issues: JiraIssue[]): Row[] => {
 
 export const IssuesTable = ({ issues, exportName }: IssuesTableProps) => {
   const jiraUrl = useJiraUrl();
+  const { isMobile } = useMq();
   const rows = useMemo(() => buildRows(issues), [issues]);
   const exportData = useMemo<ExportData>(
     () => ({
@@ -117,6 +150,9 @@ export const IssuesTable = ({ issues, exportName }: IssuesTableProps) => {
           ))}
         </div>
       )}
+      {isMobile ? (
+        <IssuesCards rows={rows} jiraUrl={jiraUrl} />
+      ) : (
       <Table>
       <TableHeader>
         <TableRow>
@@ -146,6 +182,7 @@ export const IssuesTable = ({ issues, exportName }: IssuesTableProps) => {
         )}
       </TableBody>
       </Table>
+      )}
     </>
   );
 };

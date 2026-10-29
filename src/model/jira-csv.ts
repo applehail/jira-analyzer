@@ -1,5 +1,4 @@
 export type JiraIssue = {
-  issueType: string;
   issueKey: string;
   summary: string;
   status: string;
@@ -17,16 +16,17 @@ export type JiraSummary = {
   totalEstimateSeconds: number;
 };
 
-/** Столбцы выгрузки, которые импортируются: заголовок CSV → поле JiraIssue */
-const COLUMNS: Record<string, keyof JiraIssue> = {
-  "Issue Type": "issueType",
-  "Issue key": "issueKey",
-  Summary: "summary",
-  Status: "status",
-  Created: "created",
-  Updated: "updated",
-  "Original Estimate": "originalEstimate",
+/** Столбцы выгрузки, которые импортируются: поле JiraIssue → допустимые заголовки CSV (англ. и рус. интерфейс Jira) */
+const COLUMNS: Record<keyof JiraIssue, string[]> = {
+  issueKey: ["Issue key", "Ключ проблемы"],
+  summary: ["Summary", "Тема"],
+  status: ["Status", "Статус"],
+  created: ["Created", "Создано"],
+  updated: ["Updated", "Обновлено"],
+  originalEstimate: ["Original Estimate", "Первоначальная оценка"],
 };
+
+const normalizeHeader = (value: string) => value.trim().toLowerCase();
 
 /** Разбор CSV: разделитель — запятая, кавычки экранируются удвоением, переводы строк допустимы внутри кавычек. */
 export const parseCsv = (text: string): string[][] => {
@@ -81,14 +81,18 @@ export const parseJiraCsv = (text: string): JiraIssue[] => {
   if (rows.length === 0) throw new Error("Файл пуст");
 
   const [header, ...data] = rows;
-  const names = header.map((h) => h.trim());
-  const indexes = Object.keys(COLUMNS).map((title) => ({ title, index: names.indexOf(title) }));
-  const missing = indexes.filter((c) => c.index < 0).map((c) => c.title);
+  const names = header.map(normalizeHeader);
+  const fields = Object.keys(COLUMNS) as (keyof JiraIssue)[];
+  const indexes = fields.map((field) => ({
+    field,
+    index: names.findIndex((n) => COLUMNS[field].some((alias) => normalizeHeader(alias) === n)),
+  }));
+  const missing = indexes.filter((c) => c.index < 0).map((c) => COLUMNS[c.field].join(" / "));
   if (missing.length > 0) throw new Error(`В файле не найдены столбцы: ${missing.join(", ")}`);
 
   return data.map((cells) => {
     const issue = {} as JiraIssue;
-    for (const { title, index } of indexes) issue[COLUMNS[title]] = (cells[index] ?? "").trim();
+    for (const { field, index } of indexes) issue[field] = (cells[index] ?? "").trim();
     return issue;
   });
 };

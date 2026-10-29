@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from "react";
 
 import { Container } from "@/libs/ui";
+import { ClearUploadButton } from "../clear-upload-button/clear-upload-button";
 import { ImportDialog } from "../import-dialog/import-dialog";
 import { Logo } from "../logo/logo";
 import { SettingsDialog } from "../settings-dialog/settings-dialog";
@@ -23,10 +24,11 @@ export const Header = () => {
   return (
     <header ref={ref} className="sticky top-0 z-50 w-full border-sidebar-border bg-sidebar text-sidebar-foreground shadow-xs">
       <Container>
-        <div className="flex items-center">
+        <div className="flex min-w-0 items-center">
           <Logo />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
+          <ClearUploadButton />
           <ImportDialog />
           <SettingsDialog />
           <ThemeToggle />

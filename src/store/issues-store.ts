@@ -2,7 +2,8 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
 import type { JiraIssue } from "@/model/jira-csv";
-import { saveAbsences } from "./absences-store";
+import { saveAbsences, useAbsencesStore } from "./absences-store";
+import { SETTINGS_STORAGE_KEY } from "./settings-store";
 
 type IssuesState = {
   /** импортированные задачи; null — выгрузка ещё не загружалась */
@@ -27,7 +28,7 @@ const loadIssuesState = (): IssuesState => {
 
 export const useIssuesStore = create<IssuesState>()(devtools(() => loadIssuesState()));
 
-/** Сохраняет выгрузку (имя файла и данные таблицы) в localStorage, сбрасывает отпускные/больничные дни и обновляет стор */
+/** Сохраняет данные (имя файла и данные таблицы) в localStorage, сбрасывает отпускные/больничные дни и обновляет стор */
 export const setIssues = (issues: JiraIssue[] | null, fileName: string | null = null) => {
   try {
     if (issues) {
@@ -36,8 +37,21 @@ export const setIssues = (issues: JiraIssue[] | null, fileName: string | null = 
       localStorage.removeItem(STORAGE_KEY);
     }
   } catch (e) {
-    console.error("Не удалось сохранить выгрузку", e);
+    console.error("Не удалось сохранить данные", e);
   }
   saveAbsences({});
   useIssuesStore.setState({ issues, fileName });
+};
+
+/** Очищает всё в localStorage, кроме настройки «Адрес Jira», и сбрасывает сторы выгрузки и отпускных дней */
+export const clearUpload = () => {
+  try {
+    Object.keys(localStorage)
+      .filter((key) => key !== SETTINGS_STORAGE_KEY)
+      .forEach((key) => localStorage.removeItem(key));
+  } catch (e) {
+    console.error("Не удалось очистить localStorage", e);
+  }
+  useAbsencesStore.setState({ absences: {} });
+  useIssuesStore.setState({ issues: null, fileName: null });
 };

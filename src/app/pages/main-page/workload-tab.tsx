@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { JiraIssue } from "@/model/jira-csv";
 import { calcWorkload, type WorkloadRow } from "@/model/workload";
+import { useMq } from "@/libs/hooks";
 import { useAbsences } from "@/store";
 import { AbsencesDialog } from "./absences-dialog";
 import { ExportButtons, type ExportData } from "./export-table";
@@ -23,12 +24,42 @@ const Cells = ({ row }: { row: WorkloadRow }) => (
   </>
 );
 
+const FIELDS: { title: string; value: (r: WorkloadRow) => string }[] = [
+  { title: "Рабочих дн", value: (r) => String(r.workDays) },
+  { title: "Пропущено дн", value: (r) => String(r.absentDays) },
+  { title: "Итого дн", value: (r) => String(r.totalDays) },
+  { title: "Рабочих ч", value: (r) => String(r.capacityHours) },
+  { title: "Оценка, ч", value: (r) => fmt(r.estimateHours) },
+  { title: "Разница, ч", value: (r) => fmt(r.diffHours) },
+  { title: "Загрузка, %", value: (r) => (r.loadPercent === null ? "—" : fmt(r.loadPercent)) },
+];
+
+/** Карточки по месяцам вместо таблицы на узких экранах */
+const WorkloadCards = ({ rows }: { rows: WorkloadRow[] }) => (
+  <div className="flex flex-col gap-2">
+    {rows.map((row, i) => (
+      <div key={row.date} className={i === rows.length - 1 ? "rounded-md bg-gray-100 p-2 font-medium dark:bg-yellow-900/40" : "rounded-md border p-2"}>
+        <div className="mb-1 font-medium">{row.date}</div>
+        <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
+          {FIELDS.map((f) => (
+            <div key={f.title} className="flex justify-between gap-2">
+              <dt className="text-muted-foreground">{f.title}</dt>
+              <dd>{f.value(row)}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    ))}
+  </div>
+);
+
 export type WorkloadTabProps = {
   issues: JiraIssue[];
 };
 
 export const WorkloadTab = ({ issues }: WorkloadTabProps) => {
   const absences = useAbsences();
+  const { isMobile } = useMq();
   const { rows, total, noEstimateCount, emptyMonths } = useMemo(() => calcWorkload(issues, absences), [issues, absences]);
   if (rows.length === 0) return <p className="pt-3 text-muted-foreground">Нет данных</p>;
 
@@ -58,10 +89,13 @@ export const WorkloadTab = ({ issues }: WorkloadTabProps) => {
         <InfoIcon />
         <AlertDescription className="text-current">Месяц задачи определяется по дате создания. Рабочие часы считаются за 8 ч в день</AlertDescription>
       </Alert>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-start gap-2">
         <AbsencesDialog rows={rows} absences={absences} />
         <ExportButtons data={exportData} />
       </div>
+      {isMobile ? (
+        <WorkloadCards rows={[...rows, total]} />
+      ) : (
       <Table>
         <TableHeader>
           <TableRow>
@@ -88,6 +122,7 @@ export const WorkloadTab = ({ issues }: WorkloadTabProps) => {
           </TableRow>
         </TableBody>
       </Table>
+      )}
       {warnings.length > 0 && (
         <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
           <TriangleAlertIcon />

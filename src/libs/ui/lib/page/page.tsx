@@ -7,7 +7,9 @@ export type PageProps = {
 export const Page = ({ children }: PageProps) => {
   return (
     <div className="flex-1">
-      <Container>{children}</Container>
+      <Container>
+        <div className="min-w-0 flex-1">{children}</div>
+      </Container>
     </div>
   );
 };

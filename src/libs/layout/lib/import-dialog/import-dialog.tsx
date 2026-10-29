@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { AlertTriangleIcon, UploadIcon } from "lucide-react";
+import { BookOpenIcon, UploadIcon } from "lucide-react";
 import { z } from "zod";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Help } from "@/libs/ui";
 import { Form, FormFile } from "@/libs/form";
 import { parseJiraCsv } from "@/model/jira-csv";
 import { setIssues } from "@/store";
@@ -17,9 +18,7 @@ const schema = z.object({
 
 type ImportForm = z.input<typeof schema>;
 
-const JQL = "assignee = currentUser() AND status not in (New) AND created >= startOfYear() ORDER BY created ASC";
-
-/** Кнопка «Загрузить выгрузку» и диалог с формой импорта CSV из Jira. */
+/** Кнопка «Загрузить данные» и диалог с формой импорта CSV из Jira. */
 export const ImportDialog = () => {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,16 +38,18 @@ export const ImportDialog = () => {
     }
   };
 
+  const title = "Загрузить данные";
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button variant="outline" />}>
+      <DialogTrigger render={<Button variant="outline" aria-label={title} title={title} />}>
         <UploadIcon data-icon="inline-start" />
-        Загрузить выгрузку
+        <span className="hidden sm:inline">{title}</span>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Загрузить выгрузку из Jira</DialogTitle>
+          <DialogTitle>Загрузить данные из Jira</DialogTitle>
           <DialogDescription className="sr-only">Выберите csv-файл выгрузки задач из Jira</DialogDescription>
         </DialogHeader>
         <Form schema={schema} onSubmit={handleSubmit}>
@@ -66,12 +67,6 @@ export const ImportDialog = () => {
                 // }
               />
 
-              <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
-                <AlertTriangleIcon />
-                <AlertTitle>Для получения выгрузки откройте в интерфейсе Jira расширенный поиск и введите строку для поиска</AlertTitle>
-                <AlertDescription>{JQL}</AlertDescription>
-              </Alert>
-
               {error && (
                 <Alert variant="destructive">
                   <AlertTitle>Ошибка импорта</AlertTitle>
@@ -82,9 +77,24 @@ export const ImportDialog = () => {
                 <Button disabled={formState.isSubmitting} className="" variant={"outline"} onClick={() => setOpen(false)}>
                   Отмена
                 </Button>
-                <Button type="submit" disabled={formState.isSubmitting} className="bg-emerald-600 text-white hover:bg-emerald-600/80">
-                  Загрузить
-                </Button>
+                <div className="flex gap-2">
+                  <Dialog>
+                    <DialogTrigger render={<Button type="button" variant="outline" />}>
+                      <BookOpenIcon data-icon="inline-start" />
+                      Инструкция
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Как получить выгрузку из Jira</DialogTitle>
+                        <DialogDescription className="sr-only">Пошаговая инструкция по выгрузке задач из Jira в csv</DialogDescription>
+                      </DialogHeader>
+                      <Help />
+                    </DialogContent>
+                  </Dialog>
+                  <Button type="submit" disabled={formState.isSubmitting} className="bg-emerald-600 text-white hover:bg-emerald-600/80">
+                    Загрузить
+                  </Button>
+                </div>
               </div>
             </>
           )}
